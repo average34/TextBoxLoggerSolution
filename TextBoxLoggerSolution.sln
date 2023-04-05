@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextBoxLoggerProject", "TextBoxLoggerProject\TextBoxLoggerProject.csproj", "{5549C419-10B6-4A69-8348-E4AB7AB04EC1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextBoxLoggerProjectTests", "TextBoxLoggerProjectTests\TextBoxLoggerProjectTests.csproj", "{088DCE08-EC26-40C1-963F-4175F3C81E39}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextBoxLoggerProjectTests", "TextBoxLoggerProjectTests\TextBoxLoggerProjectTests.csproj", "{088DCE08-EC26-40C1-963F-4175F3C81E39}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
