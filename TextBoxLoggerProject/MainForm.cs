@@ -11,7 +11,7 @@ namespace TextBoxLoggerProject
         {
             _ = new TextBoxLogger(this.textBoxLog);
 
-            TextBoxLogger.Log("テスト");
+            TextBoxLogger.Log("起動完了");
         }
 
         private void buttonInputText_Click(object sender, EventArgs e)
