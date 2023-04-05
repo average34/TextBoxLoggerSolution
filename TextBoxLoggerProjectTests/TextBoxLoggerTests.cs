@@ -32,7 +32,7 @@ namespace TextBoxLoggerProject.Tests
 
             // Assert
             Assert.AreEqual(2, TextBoxLogger.TextBox.Lines.Length - 2);
-            //最初に「テスト」が追加され、最後に改行文字が追加される。
+            //最初に「起動完了」が追加され、最後に改行文字が追加される。
             //そのためLogを呼び出した値より2高い数字が実際の行数である。
         }
 
