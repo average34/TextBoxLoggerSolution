@@ -22,6 +22,10 @@ namespace TextBoxLoggerProject
         /// </remarks>
         public static string? TxtPath { get; set; } = GetDefaultTxtPath();
 
+
+
+        private static readonly SemaphoreSlim semaphore = new(1);
+
         /// <summary>
         /// 空のコンストラクター
         /// </summary>
@@ -75,7 +79,6 @@ namespace TextBoxLoggerProject
         }
 
 
-        private static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1);
 
 
         /// <summary>
