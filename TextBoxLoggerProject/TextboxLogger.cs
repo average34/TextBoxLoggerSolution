@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Windows.Forms;
 
 namespace TextBoxLoggerProject
 {
@@ -7,17 +8,11 @@ namespace TextBoxLoggerProject
     /// </summary>
     public class TextBoxLogger
     {
-        private static TextBox? _textBox;
-        private static string? _txtPath;
 
         /// <summary>
         /// ログを出力するテキストボックス
         /// </summary>
-        public static TextBox? TextBox
-        {
-            get { return _textBox; }
-            set { _textBox = value; }
-        }
+        public static TextBox? TextBox { get; set; }
 
         /// <summary>
         /// ログを出力するテキストファイルのパス
@@ -25,19 +20,13 @@ namespace TextBoxLoggerProject
         /// <remarks>
         /// nullにすることでログを出力しないこともできる
         /// </remarks>
-        public static string? TxtPath
-        {
-            get { return _txtPath; }
-            set { _txtPath = value; }
-
-        }
+        public static string? TxtPath { get; set; } = GetDefaultTxtPath();
 
         /// <summary>
         /// 空のコンストラクター
         /// </summary>
         public TextBoxLogger()
         {
-            SetTxtPathDefault();
         }
 
         /// <summary>
@@ -46,11 +35,11 @@ namespace TextBoxLoggerProject
         /// <param name="textBox">ログを出力するテキストボックス</param>
         public TextBoxLogger(TextBox textBox) : base()
         {
-            SetTxtPathDefault();
             TextBox = textBox;
         }
 
 
+        private static readonly object _lockObjectForLog = new object();
 
         /// <summary>
         /// TextBoxにログを出力する
@@ -60,20 +49,20 @@ namespace TextBoxLoggerProject
         {
             if (string.IsNullOrWhiteSpace(message)) return;
 
-            Console.WriteLine(message);
-            if (_textBox is null) return;
-            //この関数をUIスレッドとは別スレッドで動かしているかどうか確認する
-            if (_textBox.InvokeRequired)
+            lock (_lockObjectForLog)
             {
-                //別スレッドで使用時にはInvokeを使用する
-                _textBox?.Invoke(new Action(() => _textBox.AppendText($"{message}{Environment.NewLine}")));
+                Console.WriteLine(message);
+                if (TextBox is null) return;
+                if (TextBox.InvokeRequired)
+                {
+                    // 別スレッドで使用時にはBeginInvokeを使用する
+                    TextBox?.BeginInvoke(new Action(() => TextBox.AppendText($"{message}{Environment.NewLine}")));
+                }
+                else TextBox?.AppendText($"{message}{Environment.NewLine}");
 
+                WriteMessageToFileAsync(message).Wait();
             }
-            else _textBox?.AppendText($"{message}{Environment.NewLine}");
-
-            WriteMessageToFileAsync(message).Wait();
         }
-
         /// <summary>
         /// TextBoxにログを出力する
         /// </summary>
@@ -86,6 +75,9 @@ namespace TextBoxLoggerProject
         }
 
 
+        private static readonly SemaphoreSlim semaphore = new SemaphoreSlim(1);
+
+
         /// <summary>
         /// ログをテキストファイルに出力
         /// </summary>
@@ -94,10 +86,13 @@ namespace TextBoxLoggerProject
         static async Task WriteMessageToFileAsync(string message)
         {
             if (string.IsNullOrWhiteSpace(message)) return;
-            if (string.IsNullOrWhiteSpace(_txtPath)) return;
+            if (string.IsNullOrWhiteSpace(TxtPath)) return;
+
+            await semaphore.WaitAsync();
+
             try
             {
-                using StreamWriter writer = File.AppendText(_txtPath);
+                using var writer = File.AppendText(TxtPath);
                 string messageCombined = string.Concat(DateTime.Now.ToString("G"),
                     " : ", message);
                 await writer.WriteLineAsync(messageCombined);
@@ -105,7 +100,7 @@ namespace TextBoxLoggerProject
             catch (Exception ex)
             {
                 Console.WriteLine($"An error occurred while writing to file: {ex.Message}");
-                Console.WriteLine($"filepath: {_txtPath}");
+                Console.WriteLine($"filepath: {TxtPath}");
                 Console.WriteLine($"message: {message}");
 #if DEBUG
                 Console.WriteLine($"Exception.Message: {ex.Message}");
@@ -113,23 +108,28 @@ namespace TextBoxLoggerProject
                 throw;
 #endif
             }
+            finally
+            {
+                semaphore.Release();
+            }
         }
+
 
         /// <summary>
         /// テキストファイルのパスを既定値に設定
         /// （カレントディレクトリ）\（プロジェクト名）Log.txt 
         /// </summary>
-        static void SetTxtPathDefault()
+        static string GetDefaultTxtPath()
         {
-            if (_txtPath != null) return;
             string currentDir = Environment.CurrentDirectory;
             var assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
             string logTextName = string.Concat(assemblyName, "Log.txt");
             string path = Path.Combine(currentDir, logTextName);
-            TxtPath = path;
 
+            return path;
         }
 
     }
 
 }
+
