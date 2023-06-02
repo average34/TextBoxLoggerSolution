@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using System.Windows.Forms;
+using System.Threading.Tasks;
+
 
 namespace TextBoxLoggerProject
 {
@@ -22,8 +24,7 @@ namespace TextBoxLoggerProject
         /// </remarks>
         public static string? TxtPath { get; set; } = GetDefaultTxtPath();
 
-
-
+        private const int timeoutSeconds = 60;
         private static readonly SemaphoreSlim semaphore = new(1);
 
         /// <summary>
@@ -91,29 +92,38 @@ namespace TextBoxLoggerProject
             if (string.IsNullOrWhiteSpace(message)) return;
             if (string.IsNullOrWhiteSpace(TxtPath)) return;
 
-            await semaphore.WaitAsync();
 
-            try
+            // タイムアウトを設定
+            var timeout = TimeSpan.FromSeconds(timeoutSeconds);
+            // タイムアウトをWaitAsyncに渡す
+            if (await semaphore.WaitAsync(timeout))
             {
-                using var writer = File.AppendText(TxtPath);
-                string messageCombined = string.Concat(DateTime.Now.ToString("G"),
-                    " : ", message);
-                await writer.WriteLineAsync(messageCombined);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred while writing to file: {ex.Message}");
-                Console.WriteLine($"filepath: {TxtPath}");
-                Console.WriteLine($"message: {message}");
+                try
+                {
+                    using var writer = File.AppendText(TxtPath);
+                    string messageCombined = string.Concat(DateTime.Now.ToString("G"),
+                        " : ", message);
+                    await writer.WriteLineAsync(messageCombined);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"An error occurred while writing to file: {ex.Message}");
+                    Console.WriteLine($"filepath: {TxtPath}");
+                    Console.WriteLine($"message: {message}");
 #if DEBUG
-                Console.WriteLine($"Exception.Message: {ex.Message}");
-                Console.WriteLine($"Exception.StackTrace: {ex.StackTrace}");
-                throw;
+                    Console.WriteLine($"Exception.Message: {ex.Message}");
+                    Console.WriteLine($"Exception.StackTrace: {ex.StackTrace}");
+                    throw;
 #endif
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
             }
-            finally
+            else
             {
-                semaphore.Release();
+                Console.WriteLine("Failed to acquire semaphore within the specified timeout.");
             }
         }
 
